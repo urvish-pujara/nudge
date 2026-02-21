@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { RemindersProvider } from './src/context/RemindersContext';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { MonthViewScreen } from './src/screens/MonthViewScreen';
 import { DetailsScreen } from './src/screens/DetailsScreen';
 import { AddEditTaskScreen } from './src/screens/AddEditTaskScreen';
 import { SearchScreen } from './src/screens/SearchScreen';
@@ -24,6 +25,13 @@ function RemindersStack() {
       <Stack.Screen 
         name="Home" 
         component={HomeScreen} 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
+      <Stack.Screen 
+        name="MonthView" 
+        component={MonthViewScreen} 
         options={{ 
           headerShown: false,
         }} 
@@ -81,6 +89,8 @@ function AppTabs() {
           
           if (route.name === 'RemindersTab') {
             iconName = focused ? 'list' : 'list-outline';
+          } else if (route.name === 'MonthTab') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
           } else if (route.name === 'SearchTab') {
             iconName = focused ? 'search' : 'search-outline';
           }
@@ -98,7 +108,14 @@ function AppTabs() {
         name="RemindersTab" 
         component={RemindersStack}
         options={{
-          title: 'Reminders',
+          title: 'Lists',
+        }}
+      />
+      <Tab.Screen 
+        name="MonthTab" 
+        component={MonthViewScreen}
+        options={{
+          title: 'This Month',
         }}
       />
       <Tab.Screen 
