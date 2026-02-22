@@ -273,17 +273,19 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({ route, navigation 
               </Text>
             ) : null
           }
-          scrollEnabled={false}
+          scrollEnabled={true}
+          showsVerticalScrollIndicator={true}
+          contentContainerStyle={styles.listContentContainer}
           style={styles.listContainer}
         />
       )}
 
       {/* FAB Button */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: theme.card, borderColor: theme.border }]}
         onPress={() => navigation.navigate('AddEditTask', { listId: list.id })}
       >
-        <Icon name="add" size={28} color="#FFF" />
+        <Icon name="add" size={28} color="#007AFF" />
       </TouchableOpacity>
     </View>
   );
@@ -356,6 +358,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     marginTop: 10,
+  },
+  listContentContainer: {
+    paddingBottom: 90,
   },
   sectionHeader: {
     fontSize: 14,
@@ -442,7 +447,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
@@ -450,5 +454,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+    borderWidth: 1,
   },
 });

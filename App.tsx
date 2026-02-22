@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useColorScheme } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { RemindersProvider } from './src/context/RemindersContext';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -15,11 +16,29 @@ import { SearchScreen } from './src/screens/SearchScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const lightTheme = { bg: '#F2F2F7', card: '#FFF', text: '#000', border: '#C6C6C8' };
+const darkTheme = { bg: '#000', card: '#1C1C1E', text: '#FFF', border: '#38383A' };
+
 function RemindersStack() {
+  const isDarkMode = useColorScheme() === 'dark';
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
     <Stack.Navigator
       screenOptions={{
         headerTintColor: '#007AFF',
+        headerStyle: {
+          backgroundColor: theme.card,
+          borderBottomColor: theme.border,
+          borderBottomWidth: 0.5,
+        },
+        headerTitleStyle: {
+          color: theme.text,
+          fontWeight: 'bold',
+        },
+        cardStyle: {
+          backgroundColor: theme.bg,
+        },
       }}
     >
       <Stack.Screen 
@@ -55,10 +74,25 @@ function RemindersStack() {
 }
 
 function SearchStack() {
+  const isDarkMode = useColorScheme() === 'dark';
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
     <Stack.Navigator
       screenOptions={{
         headerTintColor: '#007AFF',
+        headerStyle: {
+          backgroundColor: theme.card,
+          borderBottomColor: theme.border,
+          borderBottomWidth: 0.5,
+        },
+        headerTitleStyle: {
+          color: theme.text,
+          fontWeight: 'bold',
+        },
+        cardStyle: {
+          backgroundColor: theme.bg,
+        },
       }}
     >
       <Stack.Screen 
@@ -80,6 +114,9 @@ function SearchStack() {
 }
 
 function AppTabs() {
+  const isDarkMode = useColorScheme() === 'dark';
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -101,6 +138,11 @@ function AppTabs() {
         tabBarInactiveTintColor: '#8E8E93',
         tabBarLabelStyle: {
           fontSize: 12,
+        },
+        tabBarStyle: {
+          backgroundColor: theme.card,
+          borderTopColor: theme.border,
+          borderTopWidth: 0.5,
         },
       })}
     >
@@ -130,10 +172,43 @@ function AppTabs() {
 }
 
 export default function App() {
+  const isDarkMode = useColorScheme() === 'dark';
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
     <SafeAreaProvider>
       <RemindersProvider>
-        <NavigationContainer>
+        <NavigationContainer
+          theme={{
+            dark: isDarkMode,
+            colors: {
+              primary: '#007AFF',
+              background: theme.bg,
+              card: theme.card,
+              text: theme.text,
+              border: theme.border,
+              notification: '#FF3B30',
+            },
+            fonts: {
+              regular: {
+                fontFamily: 'System',
+                fontWeight: '400',
+              },
+              bold: {
+                fontFamily: 'System',
+                fontWeight: '600',
+              },
+              heavy: {
+                fontFamily: 'System',
+                fontWeight: '700',
+              },
+              medium: {
+                fontFamily: 'System',
+                fontWeight: '500',
+              },
+            },
+          }}
+        >
           <AppTabs />
         </NavigationContainer>
       </RemindersProvider>
