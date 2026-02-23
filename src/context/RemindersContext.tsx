@@ -14,6 +14,13 @@ export interface Task {
   recurrence?: RecurrenceConfig;
   isRecurringInstance?: boolean;
   parentTaskId?: string;
+  // Streaks
+  streakEnabled?: boolean;
+  streakStartDate?: string;
+  lastCompletedDate?: string;
+  currentStreak?: number;
+  bestStreak?: number;
+  completedDates?: string[]; // array of completed dates (YYYY-MM-DD format)
 }
 
 export interface ReminderList {
@@ -33,6 +40,7 @@ interface RemindersContextType {
   deleteTask: (listId: string, taskId: string) => void;
   editTask: (listId: string, taskId: string, task: Partial<Task>) => void;
   completeTask: (listId: string, taskId: string) => void;
+  toggleStreakDate: (listId: string, taskId: string, date: string) => void;
   getTaskCount: (listId: string) => number;
   loadData: () => Promise<void>;
   saveData: () => Promise<void>;
@@ -185,8 +193,111 @@ export const RemindersProvider: React.FC<{ children: ReactNode }> = ({ children 
     ));
   };
 
+  const daysBetween = (a?: string, b?: string) => {
+    if (!a || !b) return Infinity;
+    const da = new Date(a);
+    const db = new Date(b);
+    const diff = Math.floor((+db - +da) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
+
   const completeTask = (listId: string, taskId: string) => {
-    editTask(listId, taskId, { isCompleted: !lists.find(l => l.id === listId)?.tasks.find(t => t.id === taskId)?.isCompleted });
+    const list = lists.find(l => l.id === listId);
+    if (!list) return;
+    const task = list.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const currentlyCompleted = task.isCompleted;
+    const newCompleted = !currentlyCompleted;
+
+    const updates: Partial<Task> = { isCompleted: newCompleted };
+
+    if (newCompleted && task.streakEnabled) {
+      const today = new Date().toISOString().split('T')[0];
+      const last = task.lastCompletedDate;
+
+      let interval = 1;
+      if (task.recurrence?.type === 'weekly') interval = 7;
+      else if (task.recurrence?.type === 'monthly') interval = 30;
+
+      const diff = last ? daysBetween(last, today) : Infinity;
+
+      const prevStreak = task.currentStreak || 0;
+      let newStreak = 1;
+      if (last && diff === interval) {
+        newStreak = prevStreak + 1;
+      }
+
+      // Add today's date to completedDates if not already there
+      const completedDates = task.completedDates ? [...task.completedDates] : [];
+      if (!completedDates.includes(today)) {
+        completedDates.push(today);
+        completedDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+      }
+
+      updates.lastCompletedDate = today;
+      updates.currentStreak = newStreak;
+      updates.bestStreak = Math.max(task.bestStreak || 0, newStreak);
+      updates.streakStartDate = task.streakStartDate || today;
+      updates.completedDates = completedDates;
+    }
+
+    editTask(listId, taskId, updates);
+  };
+
+  const toggleStreakDate = (listId: string, taskId: string, date: string) => {
+    const list = lists.find(l => l.id === listId);
+    if (!list) return;
+    const task = list.tasks.find(t => t.id === taskId);
+    if (!task || !task.streakEnabled) return;
+
+    const completedDates = task.completedDates ? [...task.completedDates] : [];
+    const dateIndex = completedDates.indexOf(date);
+
+    if (dateIndex > -1) {
+      completedDates.splice(dateIndex, 1);
+    } else {
+      completedDates.push(date);
+    }
+
+    completedDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    // Recalculate streak based on consecutive completed dates
+    let currentStreak = 0;
+    let bestStreak = task.bestStreak || 0;
+
+    if (completedDates.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      let interval = 1;
+      if (task.recurrence?.type === 'weekly') interval = 7;
+      else if (task.recurrence?.type === 'monthly') interval = 30;
+
+      let streakCount = 0;
+      let lastDate = completedDates[0];
+      streakCount = 1;
+
+      for (let i = 1; i < completedDates.length; i++) {
+        const diff = daysBetween(completedDates[i], lastDate);
+        if (diff === interval) {
+          streakCount++;
+          lastDate = completedDates[i];
+        } else {
+          break;
+        }
+      }
+
+      currentStreak = streakCount;
+      bestStreak = Math.max(bestStreak, streakCount);
+    }
+
+    const updates: Partial<Task> = {
+      completedDates,
+      currentStreak,
+      bestStreak,
+      lastCompletedDate: completedDates.length > 0 ? completedDates[0] : undefined,
+    };
+
+    editTask(listId, taskId, updates);
   };
 
   const getTaskCount = (listId: string) => {
@@ -195,7 +306,7 @@ export const RemindersProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   return (
-    <RemindersContext.Provider value={{ lists, addList, deleteList, editList, addTask, deleteTask, editTask, completeTask, getTaskCount, loadData, saveData }}>
+    <RemindersContext.Provider value={{ lists, addList, deleteList, editList, addTask, deleteTask, editTask, completeTask, toggleStreakDate, getTaskCount, loadData, saveData }}>
       {children}
     </RemindersContext.Provider>
   );

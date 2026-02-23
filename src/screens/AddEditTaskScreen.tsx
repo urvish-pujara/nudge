@@ -10,6 +10,7 @@ import {
   Modal,
   FlatList,
   Alert,
+  Switch,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useReminders, Task } from '../context/RemindersContext';
@@ -52,6 +53,7 @@ export const AddEditTaskScreen: React.FC<AddEditTaskScreenProps> = ({ route, nav
   const [recurrence, setRecurrence] = useState<RecurrenceConfig | undefined>(task?.recurrence);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showPriorityMenu, setShowPriorityMenu] = useState(false);
+  const [streakEnabled, setStreakEnabled] = useState<boolean>(task?.streakEnabled || false);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -74,6 +76,7 @@ export const AddEditTaskScreen: React.FC<AddEditTaskScreenProps> = ({ route, nav
       dueTime,
       recurrence,
       isCompleted: task?.isCompleted || false,
+      streakEnabled,
     };
 
     // Validate task
@@ -98,7 +101,17 @@ export const AddEditTaskScreen: React.FC<AddEditTaskScreenProps> = ({ route, nav
       const editListId = listId || task.parentTaskId || task.listId || targetListId;
       if (editListId) editTask(editListId, task.id, taskData);
     } else {
-      if (targetListId) addTask(targetListId, taskData);
+      if (targetListId) {
+        // initialize streak metadata for new task if enabled
+        if (streakEnabled) {
+          const today = new Date().toISOString().split('T')[0];
+          (taskData as any).streakStartDate = today;
+          (taskData as any).lastCompletedDate = undefined;
+          (taskData as any).currentStreak = 0;
+          (taskData as any).bestStreak = 0;
+        }
+        addTask(targetListId, taskData as any);
+      }
     }
 
     navigation.goBack();
@@ -160,6 +173,22 @@ export const AddEditTaskScreen: React.FC<AddEditTaskScreenProps> = ({ route, nav
             isDarkMode={isDarkMode}
             theme={theme}
           />
+        </View>
+
+        {/* Streak Toggle Section */}
+        <View style={[styles.section, { marginTop: 10 }]}>
+          <View style={[styles.optionRow, { backgroundColor: theme.card }]}>
+            <View style={styles.optionLeft}>
+              <Icon name="flame" size={18} color="#FF9500" />
+              <Text style={[styles.optionLabel, { color: theme.text }]}>Track Streak</Text>
+            </View>
+            <Switch
+              value={streakEnabled}
+              onValueChange={setStreakEnabled}
+              trackColor={{ false: '#767577', true: '#81C784' }}
+              thumbColor={streakEnabled ? '#4CAF50' : '#f4f3f4'}
+            />
+          </View>
         </View>
 
         {/* Priority Section */}

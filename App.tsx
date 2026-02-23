@@ -13,6 +13,8 @@ import { DetailsScreen } from './src/screens/DetailsScreen';
 import { AddEditTaskScreen } from './src/screens/AddEditTaskScreen';
 import { CategoryScreen } from './src/screens/CategoryScreen';
 import { SearchScreen } from './src/screens/SearchScreen';
+import { StreaksScreen } from './src/screens/StreaksScreen';
+import StreakDetailScreen from './src/screens/StreakDetailScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -66,6 +68,53 @@ function RemindersStack() {
         component={DetailsScreen} 
         options={{ 
           headerShown: false,
+        }} 
+      />
+      <Stack.Screen 
+        name="AddEditTask" 
+        component={AddEditTaskScreen} 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
+    </Stack.Navigator>
+  );
+}
+
+function StreaksStack() {
+  const isDarkMode = useColorScheme() === 'dark';
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerTintColor: '#007AFF',
+        headerStyle: {
+          backgroundColor: theme.card,
+          borderBottomColor: theme.border,
+          borderBottomWidth: 0.5,
+        },
+        headerTitleStyle: {
+          color: theme.text,
+          fontWeight: 'bold',
+        },
+        cardStyle: {
+          backgroundColor: theme.bg,
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="StreaksMain" 
+        component={StreaksScreen} 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
+      <Stack.Screen 
+        name="StreakDetail" 
+        component={StreakDetailScreen} 
+        options={{ 
+          headerTitle: 'Streak Details',
         }} 
       />
       <Stack.Screen 
@@ -157,6 +206,13 @@ function AppTabs() {
         component={RemindersStack}
         options={{
           title: 'Lists',
+        }}
+      />
+      <Tab.Screen
+        name="StreaksTab"
+        component={StreaksStack}
+        options={{
+          title: 'Streaks',
         }}
       />
       <Tab.Screen 
