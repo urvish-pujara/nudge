@@ -41,7 +41,7 @@ export const AddEditTaskScreen: React.FC<AddEditTaskScreenProps> = ({ route, nav
   const isDarkMode = useColorScheme() === 'dark';
   const theme = isDarkMode ? darkTheme : lightTheme;
   const { addTask, editTask, lists } = useReminders();
-  
+
   const { listId, task } = route.params || {};
   
   const [title, setTitle] = useState(task?.title || '');
@@ -92,10 +92,13 @@ export const AddEditTaskScreen: React.FC<AddEditTaskScreenProps> = ({ route, nav
       }
     }
 
+    const targetListId = listId || (lists && lists.length > 0 ? lists[0].id : undefined);
     if (task?.id) {
-      editTask(listId, task.id, taskData);
+      // if editing, require the original listId from route or task
+      const editListId = listId || task.parentTaskId || task.listId || targetListId;
+      if (editListId) editTask(editListId, task.id, taskData);
     } else {
-      addTask(listId, taskData);
+      if (targetListId) addTask(targetListId, taskData);
     }
 
     navigation.goBack();

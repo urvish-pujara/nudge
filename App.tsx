@@ -11,6 +11,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { MonthViewScreen } from './src/screens/MonthViewScreen';
 import { DetailsScreen } from './src/screens/DetailsScreen';
 import { AddEditTaskScreen } from './src/screens/AddEditTaskScreen';
+import { CategoryScreen } from './src/screens/CategoryScreen';
 import { SearchScreen } from './src/screens/SearchScreen';
 
 const Stack = createStackNavigator();
@@ -47,6 +48,11 @@ function RemindersStack() {
         options={{ 
           headerShown: false,
         }} 
+      />
+      <Stack.Screen
+        name="Category"
+        component={CategoryScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="MonthView" 

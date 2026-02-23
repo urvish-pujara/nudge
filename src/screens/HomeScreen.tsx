@@ -6,9 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   useColorScheme,
-  Modal,
-  TextInput,
-  Alert,
   SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -18,343 +15,86 @@ interface HomeScreenProps {
   navigation: any;
 }
 
-const colors = [
-  '#4CD964', // Green
-  '#007AFF', // Blue
-  '#FF3B30', // Red
-  '#FF9500', // Orange
-  '#AF52DE', // Purple
-  '#FF2D55', // Pink
-  '#00C7BE', // Teal
-  '#FFCC00', // Yellow
-];
-
-const icons = [
-  'list',
-  'star',
-  'school',
-  'briefcase',
-  'cart',
-  'heart',
-  'home',
-  'checkmark-done',
-  'document',
-  'camera',
-  'music',
-  'airplane',
-];
+ 
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const isDarkMode = useColorScheme() === 'dark';
   const theme = isDarkMode ? darkTheme : lightTheme;
-  const { lists, addList, deleteList, editList, getTaskCount } = useReminders();
+  const { lists, completeTask, deleteTask } = useReminders();
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [newListName, setNewListName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(colors[0]);
-  const [selectedIcon, setSelectedIcon] = useState(icons[0]);
-  const [editingList, setEditingList] = useState<any>(null);
+  // flatten tasks across lists
+  const allTasks = lists.flatMap(l => (l.tasks || []).map(t => ({ ...t, listId: l.id, listName: l.name })));
 
-  const handleAddList = () => {
-    if (!newListName.trim()) {
-      Alert.alert('Error', 'Please enter a list name');
-      return;
-    }
-    addList(newListName, selectedColor, selectedIcon);
-    setNewListName('');
-    setSelectedColor(colors[0]);
-    setSelectedIcon(icons[0]);
-    setShowAddModal(false);
-  };
-
-  const handleEditList = () => {
-    if (!newListName.trim()) {
-      Alert.alert('Error', 'Please enter a list name');
-      return;
-    }
-    editList(editingList.id, newListName, selectedColor, selectedIcon);
-    setNewListName('');
-    setSelectedColor(colors[0]);
-    setSelectedIcon(icons[0]);
-    setShowEditModal(false);
-    setEditingList(null);
-  };
-
-  const handleDeleteList = (listId: string, listName: string) => {
-    Alert.alert(
-      'Delete List',
-      `Are you sure you want to delete "${listName}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteList(listId),
-        },
-      ]
-    );
-  };
-
-  const openEditModal = (list: any) => {
-    setEditingList(list);
-    setNewListName(list.name);
-    setSelectedColor(list.color);
-    setSelectedIcon(list.icon);
-    setShowEditModal(true);
-  };
-
-  const ListItem = ({ item }: { item: any }) => {
-    const recurringTasksCount = item.tasks.filter(
-      (t: any) => t.recurrence && t.recurrence.type !== 'none'
-    ).length;
-
-    return (
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Details', { list: item })}
-        onLongPress={() => openEditModal(item)}
-        style={[styles.listItem, { backgroundColor: theme.card }]}
-      >
-        <View style={styles.leftContent}>
-          <View style={[styles.iconCircle, { backgroundColor: item.color }]}>
-            <Icon name={item.icon} size={20} color="#FFF" />
-          </View>
-          <View style={styles.textContent}>
-            <Text style={[styles.listName, { color: theme.text }]}>{item.name}</Text>
-            <View style={styles.listMeta}>
-              <Text style={[styles.taskCount, { color: '#8E8E93' }]}>
-                {getTaskCount(item.id)} task{getTaskCount(item.id) !== 1 ? 's' : ''}
-              </Text>
-              {recurringTasksCount > 0 && (
-                <View style={[styles.recurringBadge, { backgroundColor: '#5AC8FA' }]}>
-                  <Icon name="repeat" size={10} color="#FFF" />
-                  <Text style={styles.recurringBadgeText}>{recurringTasksCount}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-        <View style={styles.rightContent}>
-          <TouchableOpacity
-            onPress={() => handleDeleteList(item.id, item.name)}
-            style={styles.deleteButton}
-          >
-            <Icon name="trash" size={18} color="#FF3B30" />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const dailyTasks = allTasks.filter(t => t.recurrence && t.recurrence.type === 'daily');
+  const weeklyTasks = allTasks.filter(t => t.recurrence && t.recurrence.type === 'weekly');
+  const monthlyTasks = allTasks.filter(t => t.recurrence && t.recurrence.type === 'monthly');
+  const oneTimeTasks = allTasks.filter(t => !t.recurrence || t.recurrence.type === 'none');
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={[styles.header, { backgroundColor: theme.card }]}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Reminders</Text>
-        <TouchableOpacity onPress={() => setShowAddModal(true)}>
+        <TouchableOpacity onPress={() => navigation.navigate('AddEditTask') }>
           <Icon name="add-circle" size={28} color="#007AFF" />
         </TouchableOpacity>
       </View>
 
-      {lists.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Icon name="list" size={50} color="#C7C7CC" />
-          <Text style={[styles.emptyStateText, { color: theme.text }]}>
-            No lists yet
-          </Text>
-          <Text style={[styles.emptyStateSubtext, { color: '#8E8E93' }]}>
-            Create a new list to get started
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={lists}
-          renderItem={ListItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
-          scrollEnabled={true}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {/* Add List Modal */}
-      <Modal visible={showAddModal} transparent animationType="slide">
-        <View style={[styles.modalOverlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Text style={[styles.modalButton, { color: '#007AFF' }]}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>New List</Text>
-              <TouchableOpacity onPress={handleAddList}>
-                <Text style={[styles.modalButton, { color: '#007AFF', fontWeight: 'bold' }]}>Done</Text>
-              </TouchableOpacity>
+      <View style={styles.listContent}>
+        {/** Category tiles — tap to open CategoryScreen */}
+        <TouchableOpacity style={[styles.listItem, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Category', { category: 'daily' })}>
+          <View style={styles.leftContent}>
+            <View style={[styles.iconCircle, { backgroundColor: '#4CD964' }]}>
+              <Icon name="repeat" size={20} color="#FFF" />
             </View>
-
-            <View style={styles.modalBody}>
-              {/* List Name Input */}
-              <View style={styles.inputSection}>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>List Name</Text>
-                <TextInput
-                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.bg }]}
-                  placeholder="Enter list name"
-                  placeholderTextColor={isDarkMode ? '#8E8E93' : '#999'}
-                  value={newListName}
-                  onChangeText={setNewListName}
-                />
-              </View>
-
-              {/* Color Selection */}
-              <View style={styles.colorSection}>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Color</Text>
-                <View style={styles.colorGrid}>
-                  {colors.map(color => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.colorOptionSelected,
-                      ]}
-                      onPress={() => setSelectedColor(color)}
-                    >
-                      {selectedColor === color && (
-                        <Icon name="checkmark" size={20} color="#FFF" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Icon Selection */}
-              <View style={styles.iconSection}>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Icon</Text>
-                <View style={styles.iconGrid}>
-                  {icons.map(icon => (
-                    <TouchableOpacity
-                      key={icon}
-                      style={[
-                        styles.iconOption,
-                        {
-                          backgroundColor: selectedIcon === icon ? selectedColor + '30' : 'transparent',
-                          borderColor: selectedIcon === icon ? selectedColor : theme.border,
-                        },
-                      ]}
-                      onPress={() => setSelectedIcon(icon)}
-                    >
-                      <Icon
-                        name={icon}
-                        size={24}
-                        color={selectedIcon === icon ? selectedColor : theme.text}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Preview */}
-              <View style={styles.previewSection}>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Preview</Text>
-                <View style={[styles.previewItem, { backgroundColor: theme.bg }]}>
-                  <View style={[styles.previewIcon, { backgroundColor: selectedColor }]}>
-                    <Icon name={selectedIcon} size={24} color="#FFF" />
-                  </View>
-                  <Text style={[styles.previewText, { color: theme.text }]}>
-                    {newListName || 'List Name'}
-                  </Text>
-                </View>
-              </View>
+            <View style={styles.textContent}>
+              <Text style={[styles.listName, { color: theme.text }]}>Daily</Text>
+              <Text style={[styles.taskCount, { color: '#8E8E93' }]}>{dailyTasks.length} task{dailyTasks.length !== 1 ? 's' : ''}</Text>
             </View>
           </View>
-        </View>
-      </Modal>
+          <View style={styles.rightContent}><Icon name="chevron-forward" size={20} color="#8E8E93" /></View>
+        </TouchableOpacity>
 
-      {/* Edit List Modal */}
-      <Modal visible={showEditModal} transparent animationType="slide">
-        <View style={[styles.modalOverlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-              <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                <Text style={[styles.modalButton, { color: '#007AFF' }]}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Edit List</Text>
-              <TouchableOpacity onPress={handleEditList}>
-                <Text style={[styles.modalButton, { color: '#007AFF', fontWeight: 'bold' }]}>Done</Text>
-              </TouchableOpacity>
+        <TouchableOpacity style={[styles.listItem, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Category', { category: 'weekly' })}>
+          <View style={styles.leftContent}>
+            <View style={[styles.iconCircle, { backgroundColor: '#5AC8FA' }]}>
+              <Icon name="calendar" size={20} color="#FFF" />
             </View>
-
-            <View style={styles.modalBody}>
-              <View style={styles.inputSection}>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>List Name</Text>
-                <TextInput
-                  style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.bg }]}
-                  placeholder="Enter list name"
-                  placeholderTextColor={isDarkMode ? '#8E8E93' : '#999'}
-                  value={newListName}
-                  onChangeText={setNewListName}
-                />
-              </View>
-
-              <View style={styles.colorSection}>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Color</Text>
-                <View style={styles.colorGrid}>
-                  {colors.map(color => (
-                    <TouchableOpacity
-                      key={color}
-                      style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.colorOptionSelected,
-                      ]}
-                      onPress={() => setSelectedColor(color)}
-                    >
-                      {selectedColor === color && (
-                        <Icon name="checkmark" size={20} color="#FFF" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.iconSection}>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Icon</Text>
-                <View style={styles.iconGrid}>
-                  {icons.map(icon => (
-                    <TouchableOpacity
-                      key={icon}
-                      style={[
-                        styles.iconOption,
-                        {
-                          backgroundColor: selectedIcon === icon ? selectedColor + '30' : 'transparent',
-                          borderColor: selectedIcon === icon ? selectedColor : theme.border,
-                        },
-                      ]}
-                      onPress={() => setSelectedIcon(icon)}
-                    >
-                      <Icon
-                        name={icon}
-                        size={24}
-                        color={selectedIcon === icon ? selectedColor : theme.text}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.previewSection}>
-                <Text style={[styles.inputLabel, { color: theme.text }]}>Preview</Text>
-                <View style={[styles.previewItem, { backgroundColor: theme.bg }]}>
-                  <View style={[styles.previewIcon, { backgroundColor: selectedColor }]}>
-                    <Icon name={selectedIcon} size={24} color="#FFF" />
-                  </View>
-                  <Text style={[styles.previewText, { color: theme.text }]}>
-                    {newListName || 'List Name'}
-                  </Text>
-                </View>
-              </View>
+            <View style={styles.textContent}>
+              <Text style={[styles.listName, { color: theme.text }]}>Weekly</Text>
+              <Text style={[styles.taskCount, { color: '#8E8E93' }]}>{weeklyTasks.length} task{weeklyTasks.length !== 1 ? 's' : ''}</Text>
             </View>
           </View>
-        </View>
-      </Modal>
+          <View style={styles.rightContent}><Icon name="chevron-forward" size={20} color="#8E8E93" /></View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.listItem, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Category', { category: 'monthly' })}>
+          <View style={styles.leftContent}>
+            <View style={[styles.iconCircle, { backgroundColor: '#007AFF' }]}>
+              <Icon name="calendar" size={20} color="#FFF" />
+            </View>
+            <View style={styles.textContent}>
+              <Text style={[styles.listName, { color: theme.text }]}>Monthly</Text>
+              <Text style={[styles.taskCount, { color: '#8E8E93' }]}>{monthlyTasks.length} task{monthlyTasks.length !== 1 ? 's' : ''}</Text>
+            </View>
+          </View>
+          <View style={styles.rightContent}><Icon name="chevron-forward" size={20} color="#8E8E93" /></View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.listItem, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Category', { category: 'one-time' })}>
+          <View style={styles.leftContent}>
+            <View style={[styles.iconCircle, { backgroundColor: '#AF52DE' }]}>
+              <Icon name="document" size={20} color="#FFF" />
+            </View>
+            <View style={styles.textContent}>
+              <Text style={[styles.listName, { color: theme.text }]}>One-time</Text>
+              <Text style={[styles.taskCount, { color: '#8E8E93' }]}>{oneTimeTasks.length} task{oneTimeTasks.length !== 1 ? 's' : ''}</Text>
+            </View>
+          </View>
+          <View style={styles.rightContent}><Icon name="chevron-forward" size={20} color="#8E8E93" /></View>
+        </TouchableOpacity>
+      </View>
+
+      
     </SafeAreaView>
   );
 };
